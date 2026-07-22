@@ -1,9 +1,6 @@
 package com.smartbudget.model;
 
 public class Category {
-    package com.smartbudget.model;
-
-public class Category {
 
     private int categoryId;
     private String name;
@@ -39,4 +36,4 @@ public class Category {
              + ", type='" + type + "'}";
     }
 }
-}
+
