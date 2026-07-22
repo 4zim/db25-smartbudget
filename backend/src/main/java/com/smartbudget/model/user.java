@@ -1,4 +1,6 @@
 package com.smartbudget.model;
+
+
 import java.time.LocalDateTime;
 
 public abstract class user {
