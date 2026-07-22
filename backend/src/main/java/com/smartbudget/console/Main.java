@@ -1,6 +1,7 @@
 package com.smartbudget.console;
 
 import java.math.BigDecimal;
+import com.smartbudget.model.Transaction;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,9 @@ import java.util.InputMismatchException;
 //
 // ============================================================
 public class Main {
+
+    private static final List<Transaction> TXNS = new ArrayList<>();
+
     public static void main(String[] args) {
 
         // -------------------------------------------------------
@@ -136,6 +140,27 @@ public class Main {
         }
         sc.close();
         System.out.println("Goodbye!");
+    }
+
+    private static void seed() {
+        TXNS.add(t(1, 1, 1, "3500.00", "2026-01-01", "January salary",   "INCOME"));
+        TXNS.add(t(2, 1, 3,   "45.20", "2026-01-08", "Groceries",        "EXPENSE"));
+        TXNS.add(t(3, 1, 4,   "25.00", "2026-01-15", "Bus pass",         "EXPENSE"));
+        TXNS.add(t(4, 2, 1, "4200.00", "2026-01-01", "January salary",   "INCOME"));
+        TXNS.add(t(5, 2, 5,  "120.00", "2026-01-20", "Electricity bill", "EXPENSE"));
+        TXNS.add(t(6, 3, 2,  "800.00", "2026-02-05", "Freelance gig",    "INCOME"));
+        TXNS.add(t(7, 3, 3,   "60.00", "2026-02-10", "Restaurant",       "EXPENSE"));
+        TXNS.add(t(8, 1, 1, "3500.00", "2026-02-01", "February salary",  "INCOME"));
+        TXNS.add(t(9, 4, 1, "2800.00", "2026-02-01", "February salary",  "INCOME"));
+        TXNS.add(t(10, 5, 3, "52.00",  "2026-03-05", "Groceries",        "EXPENSE"));
+        System.out.println("Seeded " + TXNS.size() + " transactions");
+    }
+
+    // tiny factory to keep seed() readable
+    private static Transaction t(int id, int uid, int cid, String amt,
+                                 String date, String desc, String type) {
+        return new Transaction(id, uid, cid, new BigDecimal(amt),
+                LocalDate.parse(date), desc, type);
     }
 
     private static void listTransactions() { /* F018 */ }
