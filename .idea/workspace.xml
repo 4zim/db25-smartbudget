@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f190a4d8-c787-4766-9eb7-833a4d05bb1d" name="Changes" comment="some backend stuff ignore">
+    <list default="true" id="f190a4d8-c787-4766-9eb7-833a4d05bb1d" name="Changes" comment="added first ticket join">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db/create_tables.sql" beforeDir="false" afterPath="$PROJECT_DIR$/db/create_tables.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db/queries.sql" beforeDir="false" afterPath="$PROJECT_DIR$/db/queries.sql" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -87,11 +86,20 @@
       <option name="project" value="LOCAL" />
       <updated>1784723266892</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="added first ticket join">
+      <option name="closed" value="true" />
+      <created>1784724395279</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1784724395279</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="some backend stuff ignore" />
-    <option name="LAST_COMMIT_MESSAGE" value="some backend stuff ignore" />
+    <MESSAGE value="added first ticket join" />
+    <option name="LAST_COMMIT_MESSAGE" value="added first ticket join" />
   </component>
 </project>

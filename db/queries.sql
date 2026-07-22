@@ -54,6 +54,9 @@ LEFT JOIN categories c ON c.category_id = t.category_id;
 -- OBSERVE: All results should have type = 'EXPENSE'.
 --          The first row should have the highest amount.
 
+SELECT * FROM transactions
+WHERE type = 'EXPENSE'
+ORDER BY amount DESC;
 
 -- ============================================================
 -- TODO TICKET-F006: Q3 — Monthly totals per user
