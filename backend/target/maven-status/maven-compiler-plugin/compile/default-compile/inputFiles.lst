@@ -14,8 +14,10 @@ C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\ex
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\exception\InvalidTransactionException.java
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\exception\ResourceNotFoundException.java
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\BaseTransaction.java
+C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\Category.java
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\ExpenseTransaction.java
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\IncomeTransaction.java
+C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\user.java
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\repository\CategoryRepository.java
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\repository\SavingsGoalRepository.java
 C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\repository\TransactionRepository.java
