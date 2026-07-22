@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.InputMismatchException;
 
 // ============================================================
 // TICKET-F016 to F019 (Day 2, Sprint 1) — Console Menu Application
@@ -104,5 +105,41 @@ public class Main {
         //          Try valid data — it should add successfully and appear in the list.
 
         System.out.println("SmartBudget Console - implement me! (TICKET-F016)");
+        Scanner sc = new Scanner(System.in);
+        boolean running = true;
+
+        while (running) {
+            System.out.println("\n=== SmartBudget Console ===");
+            System.out.println("1) List Transactions");
+            System.out.println("2) Add Transaction");
+            System.out.println("3) Summary");
+            System.out.println("4) Exit");
+            System.out.print("Choice: ");
+
+            int choice;
+            try {
+                choice = sc.nextInt();
+                sc.nextLine();                    // discard trailing newline
+            } catch (InputMismatchException e) {
+                System.out.println("Please enter a number 1-4.");
+                sc.nextLine();                    // discard bad token
+                continue;
+            }
+
+            switch (choice) {
+                case 1 -> listTransactions();     // wired up in F018
+                case 2 -> addTransaction(sc);     // wired up in F019
+                case 3 -> showSummary();          // wired up in F020
+                case 4 -> running = false;
+                default -> System.out.println("Unknown option: " + choice);
+            }
+        }
+        sc.close();
+        System.out.println("Goodbye!");
     }
-}
+
+    private static void listTransactions() { /* F018 */ }
+    private static void addTransaction(Scanner sc) { /* F019 */ }
+    private static void showSummary() { /* F020 */ }
+    }
+
