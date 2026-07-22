@@ -26,6 +26,16 @@
 -- OBSERVE: The result should show human-readable names like "Alice Smith" and "Food"
 --          instead of numeric IDs like 1 and 3.
 
+SELECT txn_id
+     , u.name
+     , c.name
+     , amount
+     , txn_date
+     , description
+     , type
+FROM transactions t
+LEFT JOIN users u ON t.user_id = u.user_id
+LEFT JOIN categories c ON c.category_id = t.category_id;
 
 -- ============================================================
 -- TODO TICKET-F006: Q2 — EXPENSE transactions only, sorted by amount (highest first)
