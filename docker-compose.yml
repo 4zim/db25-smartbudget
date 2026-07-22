@@ -1,0 +1,329 @@
+# ============================================================
+# TICKET-F107/F108 (Day 10, Sprint 9) — Docker Compose
+# ============================================================
+#
+# WHAT: Docker Compose lets you run MULTIPLE containers as ONE application
+#       with a single command: docker-compose up
+#       This file defines 3 services (containers) that work together:
+#         1. postgres  — the database (stores all data)
+#         2. backend   — the Spring Boot API (business logic)
+#         3. frontend  — the React app served by nginx (user interface)
+#
+# WHY:  Running 3 containers manually is tedious and error-prone:
+#         docker run postgres ...
+#         docker run backend ...   (must wait for postgres!)
+#         docker run frontend ...  (must know backend's IP!)
+#       Docker Compose handles all of this: ordering, networking, environment variables.
+#
+# VISUAL: How the 3 containers communicate:
+#
+#       ┌──────────────────────────────────────────────────────────────┐
+#       │                    Docker Network (automatic)                │
+#       │                                                              │
+#       │  ┌─────────────┐     ┌─────────────┐     ┌──────────────┐  │
+#       │  │  postgres    │     │   backend    │     │   frontend   │  │
+#       │  │  Port: 5432  │◄────│  Port: 8080  │◄────│  Port: 80    │  │
+#       │  │  (database)  │     │  (Spring)    │     │  (nginx)     │  │
+#       │  └─────────────┘     └─────────────┘     └──────────────┘  │
+#       │        ▲                    ▲                    ▲           │
+#       │        │                    │                    │           │
+#       └────────│────────────────────│────────────────────│───────────┘
+#                │                    │                    │
+#           Host: 5432           Host: 8080          Host: 3000
+#           (debugging)          (API direct)        (User access)
+#
+#       Container-to-container: They use SERVICE NAMES as hostnames.
+#         backend connects to "postgres:5432" (not "localhost:5432")
+#         frontend's nginx proxies to "backend:8080" (not "localhost:8080")
+#       Docker's internal DNS resolves these names to container IPs.
+#
+# KEY CONCEPTS:
+#   version:     Compose file format version (3.9 is current)
+#   services:    Each service = one container definition
+#   image:       Use a pre-built image from Docker Hub (e.g., postgres:16-alpine)
+#   build:       Build an image from a Dockerfile in the specified directory
+#   ports:       Map host_port:container_port (makes the service accessible from your laptop)
+#   environment: Set environment variables inside the container
+#   depends_on:  Control startup order + wait for health
+#   volumes:     Persistent storage (data survives container restarts)
+#   healthcheck: A command Docker runs periodically to check if a service is ready
+#
+# HOW TO RUN:
+#   Start everything:    docker-compose up --build
+#     (--build forces rebuilding images if Dockerfiles changed)
+#   Start in background: docker-compose up -d --build
+#   See logs:            docker-compose logs -f
+#   Stop everything:     docker-compose down
+#   Stop + delete data:  docker-compose down -v
+#     (-v removes volumes — deletes all database data!)
+#
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ===========================================================
+  # TODO TICKET-F107: SERVICE 1 — PostgreSQL Database (~8 lines)
+  # ===========================================================
+  #
+  # WHAT: The official PostgreSQL database running in a container.
+  #       PostgreSQL stores all SmartBudget data: users, transactions, goals.
+  #       Uses the lightweight "alpine" variant (~80MB instead of ~400MB).
+  #
+  # HOW — Write these lines under a "postgres:" service key:
+  #
+  # SKELETON (fill in the blanks):
+  #
+  #   postgres:
+  #     image: ________________________      ← Which Docker Hub image?
+  #     environment:
+  #       POSTGRES_DB: ________________      ← Database name
+  #       POSTGRES_USER: ______________      ← Database username
+  #       POSTGRES_PASSWORD: __________      ← Database password
+  #     ports:
+  #       - "_____:_____"                    ← host_port:container_port
+  #     volumes:
+  #       - pgdata:________________________  ← Where postgres stores data
+  #     healthcheck:
+  #       test: ["CMD-SHELL", "pg_isready -U ________"]
+  #       interval: 5s
+  #       retries: 5
+  #
+  # STEP-BY-STEP:
+  #
+  #   image: postgres:16-alpine
+  #     → Use PostgreSQL version 16 on Alpine Linux
+  #     → Docker automatically downloads this from Docker Hub
+  #
+  #   environment:
+  #     POSTGRES_DB: smartbudget
+  #       → PostgreSQL creates this database on first startup
+  #     POSTGRES_USER: sb_user
+  #       → PostgreSQL creates this user on first startup
+  #     POSTGRES_PASSWORD: sb_pass
+  #       → Sets the password for sb_user
+  #     SECURITY NOTE: In production, use ${POSTGRES_PASSWORD:-sb_pass} syntax
+  #       to read from a .env file. Never hardcode real passwords in compose files.
+  #
+  #   ports:
+  #     - "5432:5432"
+  #       → Maps host port 5432 to container port 5432
+  #       → This lets you connect from your laptop using pgAdmin or psql:
+  #         psql -h localhost -p 5432 -U sb_user -d smartbudget
+  #       → In production, you'd REMOVE this port mapping (no external access)
+  #
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #       → "pgdata" is a named volume (defined at the bottom of this file)
+  #       → /var/lib/postgresql/data is where PostgreSQL stores its database files
+  #       → WITHOUT this, all data is LOST when the container stops!
+  #       → WITH this, data persists across: docker-compose down → docker-compose up
+  #
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U sb_user"]
+  #       → pg_isready checks if PostgreSQL is accepting connections
+  #       → Docker runs this command every 5 seconds
+  #       → After 5 successful checks, the service is "healthy"
+  #       → The backend uses depends_on: condition: service_healthy
+  #         to wait until this check passes
+  #     interval: 5s
+  #       → Check every 5 seconds
+  #     retries: 5
+  #       → Give up after 5 failed checks (25 seconds total)
+  #
+  # WHY HEALTHCHECK?
+  #   PostgreSQL takes a few seconds to initialize on first start.
+  #   Without healthcheck, the backend starts immediately and gets:
+  #     "Connection refused" because PostgreSQL isn't ready yet → backend crashes.
+  #   With healthcheck + depends_on condition, Docker waits until PostgreSQL says "I'm ready!"
+  #
+  # OBSERVE: After docker-compose up, look for this log line from postgres:
+  #          "database system is ready to accept connections"
+  #          You can connect from your laptop: psql -h localhost -U sb_user -d smartbudget
+
+
+  # ===========================================================
+  # TODO TICKET-F107: SERVICE 2 — Spring Boot Backend (~10 lines)
+  # ===========================================================
+  #
+  # WHAT: The Spring Boot API server, built from backend/Dockerfile.
+  #       Connects to the PostgreSQL database and serves REST endpoints.
+  #
+  # HOW — Write these lines under a "backend:" service key:
+  #
+  # SKELETON (fill in the blanks):
+  #
+  #   backend:
+  #     build: ___________                   ← Path to the Dockerfile directory
+  #     depends_on:
+  #       postgres:
+  #         condition: _______________       ← Wait for what?
+  #     ports:
+  #       - "_____:_____"                    ← host_port:container_port
+  #     environment:
+  #       SPRING_DATASOURCE_URL: jdbc:postgresql://________:5432/smartbudget
+  #       SPRING_DATASOURCE_USERNAME: ____________
+  #       SPRING_DATASOURCE_PASSWORD: ____________
+  #       SPRING_PROFILES_ACTIVE: ________
+  #
+  # STEP-BY-STEP:
+  #
+  #   build: ./backend
+  #     → "Build the Docker image using the Dockerfile in the ./backend directory"
+  #     → Docker runs: docker build ./backend
+  #     → Uses the multi-stage Dockerfile you created in TICKET-F105
+  #
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     → "Don't start this container until the postgres healthcheck passes"
+  #     → This prevents the "Connection refused" crash on startup
+  #     → Simple "depends_on: [postgres]" only controls START order, not readiness
+  #       The "condition: service_healthy" is the key — it waits for actual readiness
+  #
+  #   ports:
+  #     - "8080:8080"
+  #     → Maps host port 8080 to container port 8080
+  #     → After startup, you can directly test: http://localhost:8080/api/categories
+  #
+  #   environment:
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbudget
+  #       → "postgres" is the SERVICE NAME defined above — Docker resolves it
+  #       → Do NOT use "localhost" here! The database is in a different container.
+  #       → "localhost" inside the backend container = the backend container itself (no DB there)
+  #
+  #     SPRING_DATASOURCE_USERNAME: sb_user
+  #     SPRING_DATASOURCE_PASSWORD: sb_pass
+  #       → Must match the POSTGRES_USER and POSTGRES_PASSWORD above
+  #
+  #     SPRING_PROFILES_ACTIVE: prod
+  #       → Tells Spring Boot to load application-prod.properties
+  #       → application-prod.properties reads these env vars using ${SPRING_DATASOURCE_URL}
+  #       → This is how you avoid hardcoding credentials in your Java code
+  #
+  # IMPORTANT CONNECTION DIAGRAM:
+  #
+  #   application-prod.properties says:
+  #     spring.datasource.url=${SPRING_DATASOURCE_URL}
+  #
+  #   docker-compose.yml sets:
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbudget
+  #
+  #   Spring Boot reads the env var → connects to postgres container → success!
+  #
+  # OBSERVE: After docker-compose up, look for:
+  #          "Started SmartBudgetApplication in X seconds"
+  #          Visit http://localhost:8080/api/categories → should return JSON
+  #          Check logs: docker-compose logs backend
+
+
+  # ===========================================================
+  # TODO TICKET-F107: SERVICE 3 — React Frontend (~6 lines)
+  # ===========================================================
+  #
+  # WHAT: The React app served by nginx, built from frontend/Dockerfile.
+  #       nginx proxies /api/* requests to the backend container.
+  #
+  # HOW — Write these lines under a "frontend:" service key:
+  #
+  # SKELETON:
+  #
+  #   frontend:
+  #     build: ___________                   ← Path to the Dockerfile directory
+  #     depends_on:
+  #       - _________                        ← Which service must start first?
+  #     ports:
+  #       - "_____:_____"                    ← host_port:container_port
+  #
+  # STEP-BY-STEP:
+  #
+  #   build: ./frontend
+  #     → Build the image using frontend/Dockerfile (TICKET-F106)
+  #
+  #   depends_on:
+  #     - backend
+  #     → Start after the backend (so nginx can proxy to it)
+  #     → Note: simple depends_on (without condition) is fine here —
+  #       nginx starts quickly and retries failed proxy connections automatically
+  #
+  #   ports:
+  #     - "3000:80"
+  #     → Maps host port 3000 to nginx's port 80 inside the container
+  #     → Users access the app at http://localhost:3000
+  #     → Why 3000? During development, Vite uses port 5173.
+  #       In production (Docker), nginx uses port 80.
+  #       We map to 3000 to avoid conflicts with other services on port 80.
+  #
+  # OBSERVE: After all 3 services start:
+  #          Visit http://localhost:3000 → React app (Dashboard)
+  #          The Dashboard should show "Connected — 5 categories loaded"
+  #          (React calls /api/categories → nginx proxies to backend → backend queries postgres)
+
+
+# ===========================================================
+# VOLUMES — Persistent storage definition
+# ===========================================================
+#
+# WHAT: Named volumes persist data outside the container's filesystem.
+#       "pgdata" is referenced by the postgres service above.
+#       Docker manages the volume's location on your host machine.
+#
+# WHY:  Without a volume, PostgreSQL data lives INSIDE the container.
+#       When the container is deleted (docker-compose down), the data is gone.
+#       With a volume, the data is stored separately and survives container lifecycle.
+#
+# COMMANDS:
+#   List volumes:    docker volume ls
+#   Inspect volume:  docker volume inspect smartbudget-revamped_pgdata
+#   Delete volume:   docker volume rm smartbudget-revamped_pgdata
+#                    (or docker-compose down -v to delete all volumes)
+
+volumes:
+  pgdata:
+
+# ===========================================================
+# OBSERVE — Full testing sequence after docker-compose up --build:
+# ===========================================================
+#
+#   1. Watch the startup order in the logs:
+#      postgres: "database system is ready to accept connections"  (first)
+#      backend:  "Started SmartBudgetApplication in X seconds"     (second)
+#      frontend: nginx starts silently                             (third)
+#
+#   2. Test the frontend: http://localhost:3000
+#      → React Dashboard should load
+#      → "API Status" card should show "Connected — 5 categories loaded"
+#
+#   3. Test the backend directly: http://localhost:8080/api/categories
+#      → Should return JSON array of categories
+#
+#   4. Test the proxy: http://localhost:3000/api/categories
+#      → Same JSON! nginx proxied the request to the backend
+#
+#   5. Test persistence:
+#      → Add data via the API (POST /api/transactions)
+#      → Run: docker-compose down
+#      → Run: docker-compose up
+#      → The data should still be there (thanks to pgdata volume)
+#
+#   6. Test data deletion:
+#      → Run: docker-compose down -v  (the -v flag removes volumes)
+#      → Run: docker-compose up --build
+#      → The database is fresh — only seed data exists
+#
+# COMMON MISTAKES:
+#   WRONG: Using "localhost" in SPRING_DATASOURCE_URL → must use service name "postgres"
+#   WRONG: Mismatched credentials → POSTGRES_USER must match SPRING_DATASOURCE_USERNAME
+#   WRONG: Missing healthcheck → backend crashes because postgres isn't ready
+#   WRONG: Missing "pgdata:" in the volumes section at the bottom → compose file is invalid
+#   WRONG: Wrong port mapping → 8080:80 vs 3000:80 — first number is YOUR laptop, second is container
+#
+# TROUBLESHOOTING:
+#   "Connection refused" → postgres isn't ready. Add healthcheck + condition: service_healthy
+#   "No such image" → forgot to run with --build flag. Use: docker-compose up --build
+#   "Port already in use" → another process is using 5432/8080/3000. Stop it or change ports
+#   "Cannot connect to Docker" → Docker Desktop is not running. Start it first.
+#   Check individual logs: docker-compose logs postgres
+#                          docker-compose logs backend
+#                          docker-compose logs frontend
