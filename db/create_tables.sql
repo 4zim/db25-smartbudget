@@ -107,3 +107,36 @@
 -- OBSERVE: After creating, INSERT a goal for user_id = 1. Then run:
 --          SELECT * FROM savings_goals WHERE user_id = 1;
 --          You should see current_amount = 0.00 (the default).
+
+
+CREATE TABLE users (
+    user_id    SERIAL PRIMARY KEY,
+    name       VARCHAR(100),
+    email      VARCHAR(150),
+    created_at TIMESTAMP
+);
+
+CREATE TABLE categories (
+    category_id SERIAL PRIMARY KEY,
+    name        VARCHAR(50),
+    type        VARCHAR(10)
+);
+
+CREATE TABLE transactions (
+    txn_id      SERIAL PRIMARY KEY,
+    user_id     INT,
+    category_id INT,
+    amount      NUMERIC(12,2),
+    txn_date    DATE,
+    description VARCHAR(255),
+    type        VARCHAR(10)
+);
+
+CREATE TABLE savings_goals (
+    goal_id        SERIAL PRIMARY KEY,
+    user_id        INT,
+    goal_name      VARCHAR(100),
+    target_amount  NUMERIC(12,2),
+    current_amount NUMERIC(12,2),
+    deadline       DATE
+);
