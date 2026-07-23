@@ -1,0 +1,199 @@
+Index: backend/src/main/java/com/smartbudget/model/Category.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.smartbudget.model;\n\npublic class Category {\n    package com.smartbudget.model;\n\npublic class Category {\n\n    private int categoryId;\n    private String name;\n    private String type;          // 'INCOME' or 'EXPENSE'\n\n    public Category() { }\n\n    public Category(int categoryId, String name, String type) {\n        this.categoryId = categoryId;\n        this.name       = name;\n        setType(type);            // run validation in the constructor too\n    }\n\n    public int getCategoryId()           { return categoryId; }\n    public void setCategoryId(int id)    { this.categoryId = id; }\n\n    public String getName()              { return name; }\n    public void setName(String name)     { this.name = name; }\n\n    public String getType()              { return type; }\n    public void setType(String type) {\n        if (!\"INCOME\".equals(type) && !\"EXPENSE\".equals(type)) {\n            throw new IllegalArgumentException(\n                \"type must be 'INCOME' or 'EXPENSE', got: \" + type);\n        }\n        this.type = type;\n    }\n\n    @Override\n    public String toString() {\n        return \"Category{id=\" + categoryId\n             + \", name='\" + name + '\\''\n             + \", type='\" + type + \"'}\";\n    }\n}\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/backend/src/main/java/com/smartbudget/model/Category.java b/backend/src/main/java/com/smartbudget/model/Category.java
+--- a/backend/src/main/java/com/smartbudget/model/Category.java	(revision e86dc6cad76727404c12a9c08e9af36aa7bbdcd2)
++++ b/backend/src/main/java/com/smartbudget/model/Category.java	(date 1784730279546)
+@@ -1,4 +1,4 @@
+-package com.smartbudget.model;
++import package com.smartbudget.model;
+ 
+ public class Category {
+     package com.smartbudget.model;
+Index: db/queries.sql
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>-- ============================================================\n-- TICKET-F006 (Day 1, Sprint 0) — Write 5 SQL Queries\n-- TICKET-F007 (Day 1, Sprint 0) — JOIN Query\n-- TICKET-F008 (Day 1, Sprint 0) — Create a VIEW\n-- ============================================================\n\n\n-- ============================================================\n-- TODO TICKET-F006: Q1 — All transactions with user name and category name\n-- (This is also TICKET-F007: JOIN query)\n-- ============================================================\n-- WHAT: A JOIN combines rows from two or more tables based on a related column.\n--       Right now, the transactions table only stores user_id (a number like 1)\n--       and category_id (a number like 3). The JOIN replaces those numbers\n--       with the actual user name and category name.\n--\n-- HOW:  Write a SELECT that JOINs three tables:\n--         transactions → users (ON transactions.user_id = users.user_id)\n--         transactions → categories (ON transactions.category_id = categories.category_id)\n--       Select these columns: txn_id, users.name, categories.name, amount, txn_date, description, type\n--       Use table aliases to keep it readable (e.g., t for transactions, u for users, c for categories)\n--\n-- WHY:  Without JOINs, you'd need 3 separate queries and match IDs in your code.\n--       JOINs let the database do this work in one query — much faster.\n--\n-- OBSERVE: The result should show human-readable names like \"Alice Smith\" and \"Food\"\n--          instead of numeric IDs like 1 and 3.\n\nSELECT txn_id\n     , u.name\n     , c.name\n     , amount\n     , txn_date\n     , description\n     , type\nFROM transactions t\nLEFT JOIN users u ON t.user_id = u.user_id\nLEFT JOIN categories c ON c.category_id = t.category_id;\n\n-- ============================================================\n-- TODO TICKET-F006: Q2 — EXPENSE transactions only, sorted by amount (highest first)\n-- ============================================================\n-- WHAT: Filtering with WHERE and sorting with ORDER BY.\n--       WHERE narrows the results; ORDER BY controls the display order.\n--\n-- HOW:  Use the same JOIN query from Q1 but add:\n--         WHERE type = 'EXPENSE'\n--         ORDER BY amount DESC\n--       DESC means descending — highest amounts first.\n--\n-- WHY:  Users want to see their biggest expenses first to identify\n--       where they're spending the most money.\n--\n-- OBSERVE: All results should have type = 'EXPENSE'.\n--          The first row should have the highest amount.\n\nSELECT * FROM transactions\nWHERE type = 'EXPENSE'\nORDER BY amount DESC;\n\n-- ============================================================\n-- TODO TICKET-F006: Q3 — Monthly totals per user\n-- ============================================================\n-- WHAT: Aggregation groups rows and calculates totals.\n--       DATE_TRUNC('month', txn_date) rounds every date to the 1st of its month,\n--       so all May transactions become '2026-05-01'.\n--       GROUP BY collects all rows with the same month + user into one summary row.\n--       SUM(amount) adds up all amounts in each group.\n--\n-- HOW:  SELECT the user name, the truncated month, and SUM(amount).\n--       JOIN transactions with users.\n--       GROUP BY the user name AND the truncated month.\n--       ORDER BY month and user name for readability.\n--\n-- WHY:  This is the data the \"Monthly Summary\" chart will display on the dashboard.\n--       Without aggregation, you'd have hundreds of individual rows.\n--\n-- OBSERVE: Each row should show one user + one month + their total.\n--          For example: \"Alice Smith | 2026-05-01 | 3652.50\"\n\n\n-- ============================================================\n-- TODO TICKET-F006: Q4 — Top 5 highest transactions\n-- ============================================================\n-- WHAT: LIMIT restricts the number of rows returned.\n--       Combined with ORDER BY DESC, it gives you the \"Top N\" pattern.\n--\n-- HOW:  Write a SELECT with JOIN (to get user/category names),\n--       ORDER BY amount DESC, then LIMIT 5.\n--\n-- WHY:  Helps users identify their largest transactions at a glance.\n--\n-- OBSERVE: You should see exactly 5 rows, with the highest amount first.\n\n\n-- ============================================================\n-- TODO TICKET-F006: Q5 — Running balance per user (Window Function)\n-- ============================================================\n-- WHAT: A Window Function performs a calculation across a set of rows\n--       WITHOUT collapsing them into one row (unlike GROUP BY).\n--       SUM(amount) OVER (PARTITION BY user_id ORDER BY txn_date) calculates\n--       a \"running total\" — each row shows the cumulative sum up to that point.\n--\n-- HOW:  SELECT user_id, txn_date, amount, type, and then add a new column:\n--         SUM(amount) OVER (PARTITION BY user_id ORDER BY txn_date) AS running_total\n--       PARTITION BY user_id means: restart the running total for each user.\n--       ORDER BY txn_date means: accumulate in date order.\n--\n-- WHY:  A running balance shows how a user's total spending grows over time.\n--       This is a key financial metric. Window functions are an advanced SQL\n--       concept tested in many technical interviews.\n--\n-- OBSERVE: For each user, the running_total should increase with each row.\n--          The last row for each user should equal their total sum.\n\n\n-- ============================================================\n-- TODO TICKET-F008: Create VIEW — monthly_summary\n-- ============================================================\n-- WHAT: A VIEW is a saved query. It behaves like a virtual table.\n--       Once created, you can SELECT * FROM monthly_summary instead of\n--       writing the full query every time.\n--\n-- HOW:  Use CREATE OR REPLACE VIEW monthly_summary AS\n--       followed by a query similar to Q3 (monthly totals),\n--       but also split income and expense into separate columns using\n--       CASE WHEN or SUM with FILTER.\n--       Columns: user_id, user_name, month, total_income, total_expense, net_balance\n--\n-- WHY:  The Spring Boot backend can query this VIEW directly.\n--       It simplifies the Java code — instead of complex JPQL,\n--       the backend just reads from the view.\n--\n-- OBSERVE: After creating, run: SELECT * FROM monthly_summary;\n--          You should see one row per user per month with income/expense split.\n-- ============================================================\n-- Q1: All transactions with user + category names (3-table JOIN)\n-- ============================================================\nSELECT t.txn_id,\n       u.name  AS user_name,\n       c.name  AS category,\n       t.amount,\n       t.txn_date,\n       t.description,\n       t.type\nFROM transactions t\nJOIN users      u ON t.user_id     = u.user_id\nJOIN categories c ON t.category_id = c.category_id\nORDER BY t.txn_date DESC, t.txn_id;\n\n-- ============================================================\n-- Q2: EXPENSE only, highest amount first\n-- ============================================================\nSELECT t.txn_id, u.name, c.name AS category, t.amount, t.txn_date\nFROM transactions t\nJOIN users      u ON t.user_id     = u.user_id\nJOIN categories c ON t.category_id = c.category_id\nWHERE t.type = 'EXPENSE'\nORDER BY t.amount DESC;\n\n-- ============================================================\n-- Q3: Monthly totals per user\n-- ============================================================\nSELECT u.name,\n       TO_CHAR(DATE_TRUNC('month', t.txn_date), 'Mon YYYY') AS month,\n       SUM(t.amount) AS total\nFROM transactions t\nJOIN users u ON t.user_id = u.user_id\nGROUP BY u.name, DATE_TRUNC('month', t.txn_date)\nORDER BY u.name, DATE_TRUNC('month', t.txn_date);\n\n-- ============================================================\n-- Q4: Running balance per user (window function)\n--   Income adds, expense subtracts.\n-- ============================================================\nSELECT u.name,\n       t.txn_date,\n       t.type,\n       t.amount,\n       SUM(CASE WHEN t.type = 'INCOME' THEN  t.amount\n                                       ELSE -t.amount END)\n           OVER (PARTITION BY u.user_id ORDER BY t.txn_date, t.txn_id)\n           AS running_balance\nFROM transactions t\nJOIN users u ON t.user_id = u.user_id\nORDER BY u.name, t.txn_date, t.txn_id;\n\n-- ============================================================\n-- Q5: VIEW — top 3 expense categories by total spend\n-- ============================================================\nCREATE OR REPLACE VIEW top_expense_categories AS\nSELECT c.name AS category, SUM(t.amount) AS total_spent\nFROM transactions t\nJOIN categories c ON t.category_id = c.category_id\nWHERE c.type = 'EXPENSE'\nGROUP BY c.name\nORDER BY total_spent DESC\nLIMIT 3;\n\nSELECT * FROM top_expense_categories;
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/db/queries.sql b/db/queries.sql
+--- a/db/queries.sql	(revision e86dc6cad76727404c12a9c08e9af36aa7bbdcd2)
++++ b/db/queries.sql	(date 1784729382994)
+@@ -78,6 +78,14 @@
+ -- OBSERVE: Each row should show one user + one month + their total.
+ --          For example: "Alice Smith | 2026-05-01 | 3652.50"
+ 
++SELECT users.name
++     , DATE_TRUNC('month', txn_date)
++     , transactions.amount
++FROM transactions
++LEFT JOIN users ON transactions.user_id = users.user_id
++GROUP BY 2;
++
++
+ 
+ -- ============================================================
+ -- TODO TICKET-F006: Q4 — Top 5 highest transactions
+@@ -92,7 +100,9 @@
+ --
+ -- OBSERVE: You should see exactly 5 rows, with the highest amount first.
+ 
+-
++SELECT * FROM transactions
++ORDER BY amount
++LIMIT 5;
+ -- ============================================================
+ -- TODO TICKET-F006: Q5 — Running balance per user (Window Function)
+ -- ============================================================
+Index: backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>com\\smartbudget\\dao\\TransactionDAO.class\ncom\\smartbudget\\entity\\SavingsGoal.class\ncom\\smartbudget\\controller\\UserController.class\ncom\\smartbudget\\dao\\DatabaseConnection.class\ncom\\smartbudget\\controller\\CategoryController.class\ncom\\smartbudget\\model\\ExpenseTransaction.class\ncom\\smartbudget\\repository\\TransactionRepository.class\ncom\\smartbudget\\controller\\TransactionController.class\ncom\\smartbudget\\controller\\SavingsGoalController.class\ncom\\smartbudget\\exception\\InvalidTransactionException.class\ncom\\smartbudget\\model\\BaseTransaction.class\ncom\\smartbudget\\service\\TransactionService.class\ncom\\smartbudget\\service\\SavingsGoalService.class\ncom\\smartbudget\\repository\\UserRepository.class\ncom\\smartbudget\\exception\\ResourceNotFoundException.class\ncom\\smartbudget\\model\\IncomeTransaction.class\ncom\\smartbudget\\repository\\SavingsGoalRepository.class\ncom\\smartbudget\\entity\\User.class\ncom\\smartbudget\\repository\\CategoryRepository.class\ncom\\smartbudget\\exception\\GlobalExceptionHandler.class\ncom\\smartbudget\\console\\Main.class\ncom\\smartbudget\\entity\\Category.class\ncom\\smartbudget\\SmartBudgetApplication.class\ncom\\smartbudget\\entity\\Transaction.class\ncom\\smartbudget\\config\\CorsConfig.class\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst b/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
+--- a/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst	(revision e86dc6cad76727404c12a9c08e9af36aa7bbdcd2)
++++ b/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst	(date 1784730545109)
+@@ -1,25 +1,0 @@
+-com\smartbudget\dao\TransactionDAO.class
+-com\smartbudget\entity\SavingsGoal.class
+-com\smartbudget\controller\UserController.class
+-com\smartbudget\dao\DatabaseConnection.class
+-com\smartbudget\controller\CategoryController.class
+-com\smartbudget\model\ExpenseTransaction.class
+-com\smartbudget\repository\TransactionRepository.class
+-com\smartbudget\controller\TransactionController.class
+-com\smartbudget\controller\SavingsGoalController.class
+-com\smartbudget\exception\InvalidTransactionException.class
+-com\smartbudget\model\BaseTransaction.class
+-com\smartbudget\service\TransactionService.class
+-com\smartbudget\service\SavingsGoalService.class
+-com\smartbudget\repository\UserRepository.class
+-com\smartbudget\exception\ResourceNotFoundException.class
+-com\smartbudget\model\IncomeTransaction.class
+-com\smartbudget\repository\SavingsGoalRepository.class
+-com\smartbudget\entity\User.class
+-com\smartbudget\repository\CategoryRepository.class
+-com\smartbudget\exception\GlobalExceptionHandler.class
+-com\smartbudget\console\Main.class
+-com\smartbudget\entity\Category.class
+-com\smartbudget\SmartBudgetApplication.class
+-com\smartbudget\entity\Transaction.class
+-com\smartbudget\config\CorsConfig.class
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"f190a4d8-c787-4766-9eb7-833a4d05bb1d\" name=\"Changes\" comment=\"added first ticket join\">\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/db/queries.sql\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/db/queries.sql\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n    <option name=\"UPDATE_TYPE\" value=\"REBASE\" />\n  </component>\n  <component name=\"GitHubPullRequestSearchHistory\">{\n  &quot;lastFilter&quot;: {\n    &quot;state&quot;: &quot;OPEN&quot;,\n    &quot;assignee&quot;: &quot;4zim&quot;\n  }\n}</component>\n  <component name=\"GithubPullRequestsUISettings\">{\n  &quot;selectedUrlAndAccountId&quot;: {\n    &quot;url&quot;: &quot;https://github.com/4zim/db25-smartbudget.git&quot;,\n    &quot;accountId&quot;: &quot;27769313-a55b-48ac-8334-be52b7ff7744&quot;\n  }\n}</component>\n  <component name=\"McpProjectServerCommands\">\n    <commands />\n    <urls />\n  </component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;associatedIndex&quot;: 6\n}</component>\n  <component name=\"ProjectId\" id=\"3GrEQluk3t5FBYfpbNLCAL0D0sd\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\"><![CDATA[{\n  \"keyToString\": {\n    \"RunOnceActivity.MCP Project settings loaded\": \"true\",\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\n    \"RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252\": \"true\",\n    \"RunOnceActivity.git.unshallow\": \"true\",\n    \"RunOnceActivity.typescript.service.memoryLimit.init\": \"true\",\n    \"com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1\": \"true\",\n    \"git-widget-placeholder\": \"main\",\n    \"junie.onboarding.icon.badge.shown\": \"true\",\n    \"kotlin-language-version-configured\": \"true\",\n    \"settings.editor.selected.configurable\": \"preferences.editor\",\n    \"to.speed.mode.migration.done\": \"true\",\n    \"vue.rearranger.settings.migration\": \"true\"\n  },\n  \"keyToStringList\": {\n    \"DatabaseDriversLRU\": [\n      \"postgresql\"\n    ]\n  }\n}]]></component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"f190a4d8-c787-4766-9eb7-833a4d05bb1d\" name=\"Changes\" comment=\"\" />\n      <created>1784721274546</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1784721274546</updated>\n      <workItem from=\"1784721275870\" duration=\"57000\" />\n    </task>\n    <task id=\"LOCAL-00001\" summary=\"some backend stuff ignore\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1784723266892</created>\n      <option name=\"number\" value=\"00001\" />\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1784723266892</updated>\n    </task>\n    <task id=\"LOCAL-00002\" summary=\"added first ticket join\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1784724395279</created>\n      <option name=\"number\" value=\"00002\" />\n      <option name=\"presentableId\" value=\"LOCAL-00002\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1784724395279</updated>\n    </task>\n    <option name=\"localTasksCounter\" value=\"3\" />\n    <servers />\n  </component>\n  <component name=\"VcsManagerConfiguration\">\n    <MESSAGE value=\"some backend stuff ignore\" />\n    <MESSAGE value=\"added first ticket join\" />\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"added first ticket join\" />\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision e86dc6cad76727404c12a9c08e9af36aa7bbdcd2)
++++ b/.idea/workspace.xml	(date 1784730540980)
+@@ -4,8 +4,11 @@
+     <option name="autoReloadType" value="SELECTIVE" />
+   </component>
+   <component name="ChangeListManager">
+-    <list default="true" id="f190a4d8-c787-4766-9eb7-833a4d05bb1d" name="Changes" comment="added first ticket join">
++    <list default="true" id="f190a4d8-c787-4766-9eb7-833a4d05bb1d" name="Changes" comment="expense transaction filtering">
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartbudget/model/Category.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartbudget/model/Category.java" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/db/queries.sql" beforeDir="false" afterPath="$PROJECT_DIR$/db/queries.sql" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+@@ -94,12 +97,21 @@
+       <option name="project" value="LOCAL" />
+       <updated>1784724395279</updated>
+     </task>
+-    <option name="localTasksCounter" value="3" />
++    <task id="LOCAL-00003" summary="expense transaction filtering">
++      <option name="closed" value="true" />
++      <created>1784727716595</created>
++      <option name="number" value="00003" />
++      <option name="presentableId" value="LOCAL-00003" />
++      <option name="project" value="LOCAL" />
++      <updated>1784727716595</updated>
++    </task>
++    <option name="localTasksCounter" value="4" />
+     <servers />
+   </component>
+   <component name="VcsManagerConfiguration">
+     <MESSAGE value="some backend stuff ignore" />
+     <MESSAGE value="added first ticket join" />
+-    <option name="LAST_COMMIT_MESSAGE" value="added first ticket join" />
++    <MESSAGE value="expense transaction filtering" />
++    <option name="LAST_COMMIT_MESSAGE" value="expense transaction filtering" />
+   </component>
+ </project>
+\ No newline at end of file
+Index: backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>C:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\config\\CorsConfig.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\console\\Main.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\controller\\CategoryController.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\controller\\SavingsGoalController.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\controller\\TransactionController.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\controller\\UserController.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\dao\\DatabaseConnection.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\dao\\TransactionDAO.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\entity\\Category.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\entity\\SavingsGoal.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\entity\\Transaction.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\entity\\User.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\exception\\GlobalExceptionHandler.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\exception\\InvalidTransactionException.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\exception\\ResourceNotFoundException.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\model\\BaseTransaction.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\model\\ExpenseTransaction.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\model\\IncomeTransaction.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\repository\\CategoryRepository.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\repository\\SavingsGoalRepository.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\repository\\TransactionRepository.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\repository\\UserRepository.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\service\\SavingsGoalService.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\service\\TransactionService.java\nC:\\Users\\Admin\\Desktop\\db25-smartbudget\\backend\\src\\main\\java\\com\\smartbudget\\SmartBudgetApplication.java\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst b/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+--- a/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst	(revision e86dc6cad76727404c12a9c08e9af36aa7bbdcd2)
++++ b/backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst	(date 1784730544876)
+@@ -1,25 +1,27 @@
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\config\CorsConfig.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\console\Main.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\controller\CategoryController.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\controller\SavingsGoalController.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\controller\TransactionController.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\controller\UserController.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\dao\DatabaseConnection.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\dao\TransactionDAO.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\entity\Category.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\entity\SavingsGoal.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\entity\Transaction.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\entity\User.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\exception\GlobalExceptionHandler.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\exception\InvalidTransactionException.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\exception\ResourceNotFoundException.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\BaseTransaction.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\ExpenseTransaction.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\model\IncomeTransaction.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\repository\CategoryRepository.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\repository\SavingsGoalRepository.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\repository\TransactionRepository.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\repository\UserRepository.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\service\SavingsGoalService.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\service\TransactionService.java
+-C:\Users\Admin\Desktop\db25-smartbudget\backend\src\main\java\com\smartbudget\SmartBudgetApplication.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/SmartBudgetApplication.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/config/CorsConfig.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/console/Main.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/controller/CategoryController.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/controller/SavingsGoalController.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/controller/TransactionController.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/controller/UserController.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/dao/DatabaseConnection.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/dao/TransactionDAO.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/entity/Category.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/entity/SavingsGoal.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/entity/Transaction.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/entity/User.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/exception/GlobalExceptionHandler.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/exception/InvalidTransactionException.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/exception/ResourceNotFoundException.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/model/BaseTransaction.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/model/Category.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/model/ExpenseTransaction.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/model/IncomeTransaction.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/model/user.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/repository/CategoryRepository.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/repository/SavingsGoalRepository.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/repository/TransactionRepository.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/repository/UserRepository.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/service/SavingsGoalService.java
++/Users/azimali/IdeaProjects/db25-smartbudget/backend/src/main/java/com/smartbudget/service/TransactionService.java
