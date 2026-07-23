@@ -78,6 +78,14 @@ ORDER BY amount DESC;
 -- OBSERVE: Each row should show one user + one month + their total.
 --          For example: "Alice Smith | 2026-05-01 | 3652.50"
 
+SELECT users.name
+     , DATE_TRUNC('month', txn_date)
+     , transactions.amount
+FROM transactions
+LEFT JOIN users ON transactions.user_id = users.user_id
+GROUP BY 2;
+
+
 
 -- ============================================================
 -- TODO TICKET-F006: Q4 — Top 5 highest transactions
@@ -92,7 +100,9 @@ ORDER BY amount DESC;
 --
 -- OBSERVE: You should see exactly 5 rows, with the highest amount first.
 
-
+SELECT * FROM transactions
+ORDER BY amount
+LIMIT 5;
 -- ============================================================
 -- TODO TICKET-F006: Q5 — Running balance per user (Window Function)
 -- ============================================================
